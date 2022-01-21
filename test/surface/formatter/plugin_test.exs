@@ -2,12 +2,22 @@ defmodule Surface.Formatter.PluginTest do
   use ExUnit.Case
   @moduletag :plugin
 
+  defmodule NestedFormatterPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(_opts) do
+      [sigils: [:M]]
+    end
+
+    def format(_contents, _opts), do: "formatted"
+  end
+
   # Write a unique file and .formatter.exs for a test, run `mix format` on the
   # file, and assert whether the input matches the expected output
   defp assert_formatter_output(filename, dot_formatter_opts \\ [], input_ex, expected) do
     ex_path = Path.join(System.tmp_dir(), filename)
     dot_formatter_path = ex_path <> ".formatter.exs"
-    dot_formatter_opts = Keyword.put(dot_formatter_opts, :plugins, [Surface.Formatter.Plugin])
+    dot_formatter_opts = Keyword.put_new(dot_formatter_opts, :plugins, [Surface.Formatter.Plugin])
 
     on_exit(fn ->
       File.rm(ex_path)
@@ -32,6 +42,19 @@ defmodule Surface.Formatter.PluginTest do
       """
       <div>
       </div>
+      """
+    )
+  end
+
+  test ".sface nested plugins are applied" do
+    assert_formatter_output(
+      "sface_files.sface",
+      [plugins: [Surface.Formatter.Plugin, NestedFormatterPlugin]],
+      """
+      <div>{gettext(~M[unformatted])}</div>
+      """,
+      """
+      <div>{gettext(~M[formatted])}</div>
       """
     )
   end

@@ -33,9 +33,7 @@ defmodule Surface.Formatter.Phases.Render do
     case Regex.run(~r/^\s*#(.*)$/, expression) do
       nil ->
         formatted =
-          expression
-          |> String.trim()
-          |> Code.format_string!(opts)
+          render_elixir_expression("todo: where to get filename?", String.trim(expression), opts)
 
         String.replace(
           "{#{formatted}}",
@@ -494,5 +492,18 @@ defmodule Surface.Formatter.Phases.Render do
       (is_list(quoted_wrapped_expression) and length(quoted_wrapped_expression) > 1) or
       (is_list(quoted_wrapped_expression) and
          Enum.any?(quoted_wrapped_expression, &is_keyword_item_with_interpolated_key?/1))
+  end
+
+  @spec render_elixir_expression(filename :: Path.t(), code :: String.t(), opts :: Keyword.t()) ::
+          iodata
+  defp render_elixir_expression(filename, code, opts)
+
+  if Version.match?(System.version(), "~> 1.13") do
+    defp render_elixir_expression(filename, code, opts) do
+      {formatter_fn, _opts} = Mix.Tasks.Format.formatter_for_file(filename, opts)
+      formatter_fn.(code)
+    end
+  else
+    defp render_elixir_expression(_filename, code, opts), do: Code.format_string!(code, opts)
   end
 end
